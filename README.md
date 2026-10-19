@@ -58,10 +58,39 @@ npm install --legacy-peer-deps
 npm run dev                 # http://localhost:3000
 ```
 
+### Demo accounts and dummy data
+
+There are no default accounts until you register or run the seeder. To populate the database configured by `MONGODB_URI`, run from `backend`:
+
+```bash
+npm run build
+npm run seed
+```
+
+The seeder reads `backend/.env` (or environment variables on Render). Run `npm run seed` once in the Render service shell after deploying, or run it locally with `MONGODB_URI` pointing to the same Atlas database as the deployed API. Keep it out of the build and start commands.
+
+| Role | Email | Default password |
+|---|---|---|
+| Admin | `admin@taskflow.test` | `TaskFlow123!` |
+| Manager | `manager@taskflow.test` | `TaskFlow123!` |
+| User | `user@taskflow.test` | `TaskFlow123!` |
+
+Optionally set `SEED_PASSWORD` before running to use a different password for all three accounts. Use demo credentials only in a demo database: the Admin account can manage users and tasks.
+
+It adds 12 tasks covering all priorities and statuses, overdue dates, recurring tasks, assignment notifications, and audit entries. Re-running preserves existing records, passwords, roles, task edits, and dates without duplicating seed records. If a demo email already has a different password or role, the command stops before writing data. A failure during writes can be retried to fill in missing records.
+
 ### Deploy
 1. **MongoDB Atlas:** create a free cluster, allow network access, copy the connection string.
 2. **API on Render:** New → Blueprint → select this repo (`render.yaml`). Set `MONGODB_URI` and `FRONTEND_ORIGINS` (your Vercel URL, no trailing slash). Railway works the same way (root dir `backend`, build `npm i --legacy-peer-deps && npm run build`, start `npm start`).
 3. **Web on Vercel:** import the repo, root directory `frontend`. Env vars: `BACKEND_URL=https://<your-api>.onrender.com` and `NEXT_PUBLIC_API_URL=https://<your-api>.onrender.com`.
+
+### Render build troubleshooting
+
+For a manually configured Render web service, use root directory `backend`, build command `npm install --legacy-peer-deps && npm run build`, and start command `npm start`. Compilation belongs in the build command; the start command runs the compiled `dist/main` server.
+
+The backend build script allows up to 1024 MB of Node.js old-space heap for Nest compilation. This addresses `Reached heap limit` failures around 256 MB; it does not reserve that memory or increase the Render instance's physical memory. If the build still runs out of physical memory, use a build environment with more memory.
+
+Render supplies `PORT` automatically, and the API listens on that port on `0.0.0.0`. A port-scan message while compilation is failing is a consequence of the server not starting. Keep `MONGODB_URI` set to the database connection string and `FRONTEND_ORIGINS` set to the frontend's HTTP(S) origin.
 
 ## Design decisions & edge cases handled
 
