@@ -79,7 +79,7 @@ export class TasksService {
         { $group: { _id: null,
           assigned: { $sum: { $cond: [{ $and: [{ $eq: ['$assignee', me] }, { $ne: ['$status', 'done'] }] }, 1, 0] } },
           created: { $sum: { $cond: [{ $eq: ['$createdBy', me] }, 1, 0] } },
-          overdue: { $sum: { $cond: [{ $and: [{ $lt: ['$dueDate', now] }, { $ne: ['$status', 'done'] }] }, 1, 0] } } } },
+          overdue: { $sum: { $cond: [{ $and: [{ $eq: [{ $type: '$dueDate' }, 'date'] }, { $lt: ['$dueDate', now] }, { $ne: ['$status', 'done'] }] }, 1, 0] } } } },
       ]),
     ]);
     const c = counts[0] ?? { assigned: 0, created: 0, overdue: 0 };
@@ -119,7 +119,8 @@ export class TasksService {
     if (!before) throw new NotFoundException('Task not found');
 
     const justCompleted = dto.status === 'done' && before.status !== 'done';
-    if (justCompleted && effRecurrence !== 'none') await this.spawnNext(before, set, effDue, effRecurrence as any);
+    if (justCompleted && effRecurrence !== 'none')
+      await this.spawnNext(before, { ...set, ...('assignee' in unset ? { assignee: undefined } : {}) }, effDue, effRecurrence as any);
 
     await this.audit.log(user.id, 'task.updated', 'task', id, { changes: dto as any });
     await this.notifyChanges(user, before, dto, (set.title as string) ?? before.title);

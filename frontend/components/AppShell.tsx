@@ -16,18 +16,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') navigator.serviceWorker.register('/sw.js').catch(() => {});
     setOnline(navigator.onLine); setPending(queuedCount());
+    if (!user) return;
     const sync = async () => {
       setOnline(true);
-      const n = await flushQueue();
-      setPending(queuedCount());
-      if (n) { setToast(`Synced ${n} offline change${n > 1 ? 's' : ''}`); window.dispatchEvent(new Event('taskflow:refresh')); setTimeout(() => setToast(''), 4000); }
+      try {
+        const n = await flushQueue();
+        setPending(queuedCount());
+        if (n) { setToast(`Synced ${n} offline change${n > 1 ? 's' : ''}`); window.dispatchEvent(new Event('taskflow:refresh')); setTimeout(() => setToast(''), 4000); }
+      } catch (e: any) { setToast(e.message || 'Offline sync failed. Please try again.'); }
     };
     const off = () => setOnline(false);
     const q = () => setPending(queuedCount());
     window.addEventListener('online', sync); window.addEventListener('offline', off); window.addEventListener('taskflow:queued', q);
     if (navigator.onLine && queuedCount()) sync();
     return () => { window.removeEventListener('online', sync); window.removeEventListener('offline', off); window.removeEventListener('taskflow:queued', q); };
-  }, []);
+  }, [user?.id]);
 
   if (['/login', '/register'].includes(path)) return <>{children}</>;
   if (loading || !user) return <p className="muted" style={{ padding: '2rem' }}>Loading…</p>;
@@ -44,7 +47,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
         <NotificationBell />
         <span className="small muted" title={user.email}>{user.name} · {user.role}</span>
-        <button className="btn sm" onClick={logout}>Log out</button>
+        <button className="btn sm" onClick={() => logout().catch((e) => setToast(e.message || 'Could not log out. Please try again.'))}>Log out</button>
       </header>
       <main className="main">{children}</main>
       {toast && <div className="toast" role="status">{toast}</div>}

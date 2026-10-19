@@ -21,9 +21,16 @@ export default function NotificationBell() {
     (async () => {
       try {
         // Short-lived, socket-only token: the session cookie is HttpOnly so JS can't read it, and the API host may differ.
-        const { token } = await api<{ token: string }>('GET', '/auth/socket-token');
         if (cancelled) return;
-        socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000', { auth: { token }, transports: ['websocket', 'polling'] });
+        socket = io((process.env.NEXT_PUBLIC_API_URL?.trim() || 'http://localhost:4000').replace(/\/+$/, ''), {
+          auth: (callback) => {
+            // Fetch a fresh token for every reconnect; socket tokens expire after five minutes.
+            api<{ token: string }>('GET', '/auth/socket-token')
+              .then(({ token }) => { if (!cancelled) callback({ token }); })
+              .catch(() => { if (!cancelled) callback({ token: '' }); });
+          },
+          transports: ['websocket', 'polling'],
+        });
         socket.on('notification', (n: Notification) => {
           setItems((p) => [n, ...p]); setUnread((u) => u + 1); setToast(n.message); setTimeout(() => setToast(''), 5000);
           window.dispatchEvent(new Event('taskflow:refresh')); // live-update any open task list / dashboard
@@ -39,10 +46,14 @@ export default function NotificationBell() {
     document.addEventListener('mousedown', close); return () => document.removeEventListener('mousedown', close);
   }, []);
 
-  const readAll = async () => { await api('PATCH', '/notifications/read-all'); setItems((p) => p.map((n) => ({ ...n, read: true }))); setUnread(0); };
+  const readAll = async () => {
+    try { await api('PATCH', '/notifications/read-all'); await load(); }
+    catch (e: any) { setToast(e.message || 'Could not mark notifications as read.'); }
+  };
   const readOne = async (n: Notification) => {
-    if (n.read) return; await api('PATCH', `/notifications/${n._id}/read`);
-    setItems((p) => p.map((x) => (x._id === n._id ? { ...x, read: true } : x))); setUnread((u) => Math.max(0, u - 1));
+    if (n.read) return;
+    try { await api('PATCH', `/notifications/${n._id}/read`); await load(); }
+    catch (e: any) { setToast(e.message || 'Could not mark notification as read.'); }
   };
 
   return (

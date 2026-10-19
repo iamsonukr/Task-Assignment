@@ -12,7 +12,7 @@ export default function TaskItem({ task, onEdit, onDelete, onStatus }: { task: T
   return (
     <article className={`task ${od ? 'overdue' : ''} ${task.status === 'done' ? 'done' : ''}`}>
       <div style={{ minWidth: 0 }}>
-        <h3 onClick={() => onEdit(task)}>{task.title}</h3>
+        <h3><button className="task-title" onClick={() => onEdit(task)}>{task.title}</button></h3>
         {task.description && <div className="muted small" style={{ marginTop: 2, overflowWrap: 'anywhere' }}>{task.description.length > 140 ? task.description.slice(0, 140) + '…' : task.description}</div>}
         <div className="meta">
           <span className={`badge p-${task.priority}`}>{task.priority}</span>

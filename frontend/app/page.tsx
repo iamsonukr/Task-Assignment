@@ -14,12 +14,19 @@ export default function Dashboard() {
   const [d, setD] = useState<Dash | null>(null);
   const [editing, setEditing] = useState<Task | 'new' | null>(null);
   const [err, setErr] = useState('');
-  const load = useCallback(() => api<Dash>('GET', '/tasks/dashboard').then(setD).catch((e) => setErr(e.message)), []);
+  const load = useCallback(() => api<Dash>('GET', '/tasks/dashboard').then((data) => { setD(data); setErr(''); }).catch((e) => setErr(e.message)), []);
   useEffect(() => { load(); }, [load]);
   useRefresh(load);
 
-  const status = async (t: Task, s: Task['status']) => { await api('PATCH', `/tasks/${t._id}`, { status: s }); load(); };
-  const del = async (t: Task) => { if (confirm(`Delete "${t.title}"?`)) { await api('DELETE', `/tasks/${t._id}`); load(); } };
+  const status = async (t: Task, s: Task['status']) => {
+    try { await api('PATCH', `/tasks/${t._id}`, { status: s }); await load(); }
+    catch (e: any) { setErr(e.message); }
+  };
+  const del = async (t: Task) => {
+    if (!confirm(`Delete "${t.title}"?`)) return;
+    try { await api('DELETE', `/tasks/${t._id}`); await load(); }
+    catch (e: any) { setErr(e.message); }
+  };
 
   const Section = ({ title, items, empty }: { title: string; items: Task[]; empty: string }) => (
     <section>

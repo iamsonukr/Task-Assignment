@@ -15,7 +15,7 @@ Next.js 15 (App Router) frontend + NestJS 11 API + MongoDB (Mongoose).
 **Core:** registration/login · task CRUD (title, description, due date, priority, status) · assign to any registered user · notification on assignment · dashboard (assigned to me / created by me / overdue) · search (title + description) · filters (status, priority, due-date range, overdue) · sorting · pagination.
 
 **Advanced (all implemented):**
-RBAC (Admin / Manager / User) · real-time notifications (Socket.io) · recurring tasks (daily/weekly/monthly) · audit log · PWA with offline reads + queued offline writes · analytics dashboard · customizable notifications (in-app, email, per-type mute) · Jest unit tests.
+RBAC (Admin / Manager / User) · real-time notifications (Socket.io) · recurring tasks (daily/weekly/monthly) · audit log · PWA with queued offline writes · analytics dashboard · customizable notifications (in-app, email, per-type mute) · Jest unit tests.
 
 ## Architecture
 
@@ -99,11 +99,11 @@ Render supplies `PORT` automatically, and the API listens on that port on `0.0.0
 * **Roles are re-read from the DB on every request**, so demotions apply immediately even with a valid JWT. Admins can't demote themselves (no lock-out).
 * **Notifications** respect the recipient's preferences, never notify you about your own actions, and never break the main request if delivery fails. Email uses SMTP when configured, otherwise it logs.
 * **Frontend:** debounced search, out-of-order response guard, filters reset to page 1, overdue highlighting, loading/empty/error states, keyboard-labelled controls, dark mode, responsive layout.
-* **Offline (PWA):** service worker caches the shell and GET API responses (network-first). Task create/update/delete made offline are queued in `localStorage` and replayed on reconnect.
+* **Offline (PWA):** service worker caches the shell and static assets. Private API responses are fetched from the network without shared offline caching so accounts cannot see each other's cached data. Task create/update/delete made offline are queued per account in `localStorage` and replayed after that account signs in and reconnects. Existing data already displayed remains visible while the page stays open.
 
 ## Assumptions & trade-offs
 
-* Offline writes are **last-write-wins** replayed in order; server-rejected ones (deleted/forbidden meanwhile) are dropped. No merge UI.
+* Offline writes are **last-write-wins** replayed in order; permanently rejected ones (deleted/forbidden meanwhile) are dropped. Network failures, server errors, expired sessions, and rate limits retain the queue for retry. The old shared queue is discarded because its account ownership is unknown. No merge UI.
 * Priority sort ranks in memory (small-team scale); a numeric priority field would let Mongo sort it.
 * Analytics trend buckets are computed in Node over the last 14 days of tasks — fine for a small team, would move to `$group` pipelines at scale.
 * No email verification / password reset (out of scope); JWTs are stateless, so logout clears the cookie but doesn't revoke an already-copied token.

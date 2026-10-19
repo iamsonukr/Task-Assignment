@@ -25,14 +25,25 @@ export default function Tasks() {
     const id = ++reqId.current; // ignore out-of-order responses
     const qs = new URLSearchParams({ page: String(page), limit: String(LIMIT) });
     for (const [k, v] of Object.entries(debounced)) if (v) qs.set(k, k.startsWith('due') ? new Date(k === 'dueTo' ? v + 'T23:59:59' : v + 'T00:00:00').toISOString() : v);
-    try { const r = await api<Paged<Task>>('GET', `/tasks?${qs}`); if (id === reqId.current) { setData(r); setErr(''); } }
+    try { const r = await api<Paged<Task>>('GET', `/tasks?${qs}`); if (id === reqId.current) {
+      const lastPage = Math.max(1, Math.ceil(r.total / LIMIT));
+      if (page > lastPage) { setPage(lastPage); return; }
+      setData(r); setErr('');
+    } }
     catch (e: any) { if (id === reqId.current) setErr(e.message); }
   }, [debounced, page]);
   useEffect(() => { load(); }, [load]);
   useRefresh(load);
 
-  const status = async (t: Task, s: Task['status']) => { await api('PATCH', `/tasks/${t._id}`, { status: s }); load(); };
-  const del = async (t: Task) => { if (confirm(`Delete "${t.title}"?`)) { await api('DELETE', `/tasks/${t._id}`); load(); } };
+  const status = async (t: Task, s: Task['status']) => {
+    try { await api('PATCH', `/tasks/${t._id}`, { status: s }); await load(); }
+    catch (e: any) { setErr(e.message); }
+  };
+  const del = async (t: Task) => {
+    if (!confirm(`Delete "${t.title}"?`)) return;
+    try { await api('DELETE', `/tasks/${t._id}`); await load(); }
+    catch (e: any) { setErr(e.message); }
+  };
   const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
   const pages = data ? Math.max(1, Math.ceil(data.total / LIMIT)) : 1;
   const dirty = JSON.stringify(f) !== JSON.stringify(initial);

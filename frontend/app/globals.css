@@ -28,11 +28,13 @@ input,select,textarea{font:inherit;color:inherit;background:var(--surface);borde
 input:focus,select:focus,textarea:focus,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:.2rem}
 .field{margin-bottom:.8rem}.row{display:flex;gap:.75rem;flex-wrap:wrap}.row>*{flex:1;min-width:140px}
-.filters{display:grid;grid-template-columns:2fr repeat(auto-fit,minmax(130px,1fr));gap:.6rem;margin-bottom:1rem}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.6rem;margin-bottom:1rem}
 .tasks{display:grid;gap:.6rem}
 .task{display:flex;gap:.75rem;align-items:flex-start;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:.8rem 1rem}
 .task.overdue{border-left:4px solid var(--danger)}
 .task h3{margin:0;font-size:1rem;cursor:pointer}.task.done h3{text-decoration:line-through;color:var(--muted)}
+.task-title{font:inherit;color:inherit;text-decoration:inherit;text-align:left;background:none;border:0;padding:0;cursor:pointer;overflow-wrap:anywhere}
+.task-title:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .meta{display:flex;flex-wrap:wrap;gap:.4rem .75rem;margin-top:.35rem;font-size:.82rem;color:var(--muted);align-items:center}
 .badge{display:inline-block;padding:.05rem .5rem;border-radius:999px;font-size:.75rem;font-weight:600;border:1px solid currentColor}
 .p-high{color:var(--hi)}.p-medium{color:var(--med)}.p-low{color:var(--lo)}

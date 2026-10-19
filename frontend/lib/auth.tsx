@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { api, ApiError } from './api';
+import { api, ApiError, setQueueUser } from './api';
 import type { User } from './types';
 
 interface Ctx { user: User | null; loading: boolean; refresh: () => Promise<void>; logout: () => Promise<void>; setUser: (u: User | null) => void }
@@ -10,7 +10,11 @@ export const useAuth = () => useContext(AuthCtx);
 const PUBLIC = ['/login', '/register'];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, updateUser] = useState<User | null>(null);
+  const setUser = useCallback((value: User | null) => {
+    setQueueUser(value?.id ?? null);
+    updateUser(value);
+  }, []);
   const [loading, setLoading] = useState(true);
   const router = useRouter(); const path = usePathname();
 
@@ -18,7 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try { setUser(await api<User>('GET', '/auth/me')); }
     catch (e) { if (e instanceof ApiError && e.status === 401) setUser(null); }
     finally { setLoading(false); }
-  }, []);
+  }, [setUser]);
   useEffect(() => { refresh(); }, [refresh]);
 
   useEffect(() => {
@@ -27,6 +31,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user && PUBLIC.includes(path)) router.replace('/');
   }, [user, loading, path, router]);
 
-  const logout = useCallback(async () => { await api('POST', '/auth/logout'); setUser(null); router.replace('/login'); }, [router]);
+  const logout = useCallback(async () => { await api('POST', '/auth/logout'); setUser(null); router.replace('/login'); }, [router, setUser]);
   return <AuthCtx.Provider value={{ user, loading, refresh, logout, setUser }}>{children}</AuthCtx.Provider>;
 }

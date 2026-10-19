@@ -41,7 +41,7 @@ export default function TaskForm({ task, onClose, onSaved }: { task?: Task; onCl
 
   return (
     <div className="modal-bg" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <form className="modal" onSubmit={submit} aria-label={task ? 'Edit task' : 'New task'}>
+      <form className="modal" role="dialog" aria-modal="true" onSubmit={submit} aria-label={task ? 'Edit task' : 'New task'}>
         <h2 style={{ marginBottom: '1rem' }}>{task ? 'Edit task' : 'New task'}</h2>
         {err && <div className="err" role="alert">{err}</div>}
         {statusOnly && <p className="muted small">You&apos;re the assignee, so you can update the status only.</p>}

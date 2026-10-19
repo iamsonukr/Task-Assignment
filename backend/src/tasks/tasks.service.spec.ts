@@ -21,6 +21,11 @@ function setup(task: any) {
 const base = { _id: 't1', title: 'T', description: '', priority: 'low', status: 'todo', recurrence: 'none', createdBy: 'c1', assignee: 'a1' };
 
 describe('TasksService', () => {
+  it('keeps the next recurring occurrence unassigned when completing and clearing an assignee', async () => {
+    const { svc, model } = setup({ ...base, recurrence: 'daily', dueDate: new Date() });
+    await svc.update(creator, 't1', { status: 'done', assignee: null });
+    expect(model.create).toHaveBeenCalledWith(expect.objectContaining({ assignee: undefined, recurrenceParent: 't1' }));
+  });
   it('hides tasks from unrelated users with 404', async () => {
     const { svc } = setup({ ...base, createdBy: 'zz', assignee: 'yy' });
     await expect(svc.get(creator, 't1')).rejects.toBeInstanceOf(NotFoundException);
